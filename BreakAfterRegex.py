@@ -19,17 +19,18 @@ def breakAfterRegex(debugger, command, result, internal_dict):
 
   target = debugger.GetSelectedTarget()
   clean_command = shlex.split(args[0])[0]
+  
   if options.non_regex:
-    breakpoint = target.BreakpointCreateByName(clean_command)
+    breakpoint = target.BreakpointCreateByName(clean_command,options.module)
   else:
-    breakpoint = target.BreakpointCreateByRegex(clean_command)
+    breakpoint = target.BreakpointCreateByRegex(clean_command,options.module)
   
   if not breakpoint.IsValid() or breakpoint.num_locations == 0:
     result.AppendWarning(
       "Breakpoint isn't valid or hasn't found any hits")
   else:
     result.AppendMessage("{}".format(breakpoint))
-    
+
   breakpoint.SetScriptCallbackFunction("BreakAfterRegex.breakpointHandler") 
 
 def breakpointHandler(frame, bp_loc, dict):
@@ -46,6 +47,7 @@ def breakpointHandler(frame, bp_loc, dict):
   output = evaluateReturnedObject(debugger,thread,function_name)
   if output is not None:
     print(output)
+  return False
 
 def evaluateReturnedObject(debugger, thread, function_name):
   '''Grabs the reference from the return register
@@ -97,7 +99,12 @@ def generateOptionParser():
   #2
   parser.add_option("-n", "--non_regex",action="store_true",
   default=False,dest="non_regex",help="Use a non-regex breakpoint instead")
-  #7
+
+  parser.add_option("-m", "--module", #2
+                    action="store",
+                    default=None,
+                    dest="module",
+                    help="Filter a breakpoint by only searching within a specified Module")
   return parser
 
 
