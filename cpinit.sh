@@ -1,0 +1,1 @@
+cp ~/.lldbinit /Users/pencilcool/lldb
