@@ -2,6 +2,17 @@ import lldb
 import optparse
 import shlex
 
+#1
+class BarOptions(object):
+#2
+  optdict = {}
+#3
+  @staticmethod
+  def addOptions(options, breakpoint):
+    key = str(breakpoint.GetID())
+    BarOptions.optdict[key] = options
+
+
 def __lldb_init_module(debugger, internal_dict):
   debugger.HandleCommand('command script add -f BreakAfterRegex.breakAfterRegex bar')
 
@@ -105,6 +116,12 @@ def generateOptionParser():
                     default=None,
                     dest="module",
                     help="Filter a breakpoint by only searching within a specified Module")
+
+  parser.add_option("-c", "--condition",
+                  action="store",
+                  default=None,
+                  dest="condition",
+                  help="Only stop if the expression matches True. Can reference return value through 'obj'. Obj-C only.")
   return parser
 
 

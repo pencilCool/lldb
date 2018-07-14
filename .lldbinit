@@ -1,0 +1,25 @@
+command alias -- Yay_Autolayout expression -l objc -O -- [[[[[UIApplication sharedApplication] keyWindow] rootViewController] view] recursiveDescription]
+command alias cpo expression -l objc -O --
+
+settings set target.x86-disassembly-flavor intel
+settings set target.skip-prologue false
+
+command alias -H "Print value in ObjC context in hexadecimal" -h "Print in hex" -- cpx expression -f x -l objc --
+
+command alias dumpreg register read rsp rbp rdi rdx
+
+command regex ls 's/(.+)/po @import Foundation; [[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"%1" error:nil]/'
+
+command regex dump_stuff "s/(.+)/image lookup -rn '\+\[\w+(\(\w+\))?\ \w+\]$' %1 /"
+
+command regex lmethods 's/(.+)/expression -lobjc -O -- [%1 _methodDescription]/'
+
+command regex ivars 's/(.+)/expression -lobjc -O -- [%1 _ivarDescription]/'
+
+command regex getcls 's/(([0-9]|\$|\@|\[).*)/cpo [%1 class]/' 's/(.+)/expression -l swift -O -- type(of: %1)/'
+
+command script import ~/lldb/BreakAfterRegex.py
+
+command alias reload_script command source ~/.lldbinit
+
+command regex gdocumentation 's/(.+)/script import os; os.system("open https:" + unichr(47) + unichr(47) + "lldb.llvm.org" + unichr(47) +"python_reference" + unichr(47) + "lldb.%1-class.html")/'
