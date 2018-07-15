@@ -25,23 +25,53 @@ def handle_command(debugger, command, result, internal_dict):
     clean_command = shlex.split(args[0])[0]
     target = debugger.GetSelectedTarget()
     contextlist = target.FindGlobalFunctions(clean_command, 0, lldb.eMatchTypeRegex)
-    output = ''
-    for context in contextlist:
-        output += context.symbol.name + '\n\n'
+    mdict = generateModuleDictionary(contextlist)
+    output = generateOutput(mdict, options, target)
     result.AppendMessage(output)
 
-def generateOptionParser():
-    usage = "usage: %prog [options] TODO Description Here :]"
-    parser = optparse.OptionParser(usage=usage, prog="lookup")
-    parser.add_option("-m", "--module",
-                      action="store",
-                      default=None,
-                      dest="module",
-                      help="This is a placeholder option to show you how to use options with strings")
-    parser.add_option("-c", "--check_if_true",
-                      action="store_true",
-                      default=False,
-                      dest="store_true",
-                      help="This is a placeholder option to show you how to use options with bools")
-    return parser
+def generateModuleDictionary(contextlist):
+    mdict = {}
+    for context in contextlist:
+        key = context.module.file.fullpath
+        if not key in mdict:
+            mdict[key] = []
+        mdict[key].append(context)
+    return mdict
+
+def generateOutput(mdict, options, target): 
+    output = ''
+    separator = '*' * 60 + '\n' 
+    for key in mdict:
+        count = len(mdict[key])
+        firstItem = mdict[key][0]
+        moduleName = firstItem.module.file.basename
+        output += '{0}{1} hits in {2}\n{0}'.format(separator,count,moduleName)
     
+        for context in mdict[key]:
+            query = ''
+            if options.load_address:
+                start = context.symbol.addr.GetLoadAddress(target)
+                end = context.symbol.end_addr.GetLoadAddress(target)
+                startHex = '0x' + format(start, '012x')
+                endHex = '0x' + format(end, '012x')
+                query += '[{}-{}]\n'.format(startHex, endHex)
+
+            query += context.symbol.name
+            query += '\n\n'
+            output += query
+    return output
+
+def generateOptionParser():
+    usage = "usage: %prog [options] code_to_query"
+    parser = optparse.OptionParser(usage=usage, prog="lookup")
+    parser.add_option("-l", "--load_address",
+          action="store_true",
+          default=False,
+          dest="load_address",
+          help="Show the load addresses for a particular hit")
+    parser.add_option("-s", "--module_summary",
+          action="store_true",
+          default=False,
+          dest="module_summary",
+          help="Only show the amount of queries in the module")
+    return parser
