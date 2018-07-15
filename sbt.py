@@ -46,20 +46,22 @@ def handle_command(debugger, command, result, internal_dict):
     frameAddresses = [f.addr.GetLoadAddress(target) 
                       for f 
                       in thread.frames]
-    frameString = processStackTraceStringFromAddresses(frameAddresses, target)
 
+    frameString = processStackTraceStringFromAddresses(frameAddresses, target)
     result.AppendMessage(frameString)
 
 
 def processStackTraceStringFromAddresses(frameAddresses, target):
     frame_string = ''
     startAddresses = [target.ResolveLoadAddress(f).symbol.addr.GetLoadAddress(target) 
-                     for f 
+                     for f
                      in frameAddresses]
     script = generateExecutableMethodsScript(startAddresses)
 
+    # New content start 1
     methods = target.EvaluateExpression(script, generateOptions())
     methodsVal = lldb.value(methods.deref)
+    # New content end 1
 
 
     # Enumerate each of the SBFrames in address list
@@ -69,9 +71,10 @@ def processStackTraceStringFromAddresses(frameAddresses, target):
 
         # New content start 2
         if symbol.synthetic: # 1
-            children = methodsVal.sbvalue.GetNumChildren() # 2
-            name = symbol.name + r' ... unresolved womp womp' # 3
-            loadAddr = symbol.addr.GetLoadAddress(target) # 4
+            children = methodsVal.sbvalue.GetNumChildren() # 4
+            name = symbol.name + r' ... unresolved womp womp' # 2
+
+            loadAddr = symbol.addr.GetLoadAddress(target) # 3
             for i in range(children):
                 key = long(methodsVal[i].key.sbvalue.description) # 5
                 if key == loadAddr:
