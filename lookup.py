@@ -45,8 +45,12 @@ def generateOutput(mdict, options, target):
         count = len(mdict[key])
         firstItem = mdict[key][0]
         moduleName = firstItem.module.file.basename
+
+        if options.module_summary:
+            output += '{} hits in {}\n'.format(count, moduleName)
+            continue
+
         output += '{0}{1} hits in {2}\n{0}'.format(separator,count,moduleName)
-    
         for context in mdict[key]:
             query = ''
             if options.load_address:
