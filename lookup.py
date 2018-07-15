@@ -22,10 +22,13 @@ def handle_command(debugger, command, result, internal_dict):
         result.SetError(parser.usage)
         return
 
-    # Uncomment if you are expecting at least one argument
-    # clean_command = shlex.split(args[0])[0]
-    result.AppendMessage('Hello! the lookup command is working!')
-
+    clean_command = shlex.split(args[0])[0]
+    target = debugger.GetSelectedTarget()
+    contextlist = target.FindGlobalFunctions(clean_command, 0, lldb.eMatchTypeRegex)
+    output = ''
+    for context in contextlist:
+        output += context.symbol.name + '\n\n'
+    result.AppendMessage(output)
 
 def generateOptionParser():
     usage = "usage: %prog [options] TODO Description Here :]"
