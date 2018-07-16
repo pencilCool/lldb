@@ -1,11 +1,15 @@
+
+
 import lldb
 import os
 import shlex
 import optparse
+import sbt
 
 def __lldb_init_module(debugger, internal_dict):
     debugger.HandleCommand(
     'command script add -f msl.handle_command msl')
+    debugger.HandleCommand('command alias enable_logging expression -lobjc -O -- extern void turn_on_stack_logging(int); turn_on_stack_logging(1);')
 
 
 def handle_command(debugger, command, result, internal_dict):
@@ -13,7 +17,52 @@ def handle_command(debugger, command, result, internal_dict):
     msl will produce the stack trace of the most recent deallocations or allocations.
     Make sure to either call enable_logging or set MallocStackLogging environment variable
     '''
+    
+    command_args = shlex.split(command)
+    parser = generateOptionParser()
+    try:
+        (options, args) = parser.parse_args(command_args)
+    except:
+        result.SetError(parser.usage)
+        return
 
+    cleanCommand = args[0]
+    process = debugger.GetSelectedTarget().GetProcess()
+    frame = process.GetSelectedThread().GetSelectedFrame()
+    target = debugger.GetSelectedTarget()
+    script = generateScript(cleanCommand, options)
+
+    # 1
+    sbval = frame.EvaluateExpression(script, generateOptions())
+
+    # 2
+    if sbval.error.fail: 
+        result.AppendMessage(str(sbval.error))
+        return
+
+    val = lldb.value(sbval)
+    addresses = []
+    # 3
+    for i in range(val.count.sbvalue.unsigned):
+        address = val.addresses[i].sbvalue.unsigned
+        sbaddr = target.ResolveLoadAddress(address)
+        loadAddr = sbaddr.GetLoadAddress(target)
+        addresses.append(loadAddr)
+
+    # 4
+    if options.resymbolicate:
+        retString = sbt.processStackTraceStringFromAddresses(
+                                                    addresses, 
+                                                       target)
+    else:
+        retString = processStackTraceStringFromAddresses(
+                                            addresses, 
+                                               target)
+
+    # 5
+    freeExpr = 'free('+str(val.addresses.sbvalue.unsigned)+')'
+    frame.EvaluateExpression(freeExpr, generateOptions())
+    result.AppendMessage(retString)
 
 
 def processStackTraceStringFromAddresses(frameAddresses, target):
